@@ -21,7 +21,7 @@ var opts struct {
 	Title   string `short:"t" long:"title" description:"title attached to the file" value-name:"TITLE"`
 	Args    struct {
 		File string
-	} `positional-args:"yes" required:"yes"`
+	} `positional-args:"yes"`
 }
 
 const (
@@ -145,6 +145,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Configファイルの読み込みに失敗しました\n 理由: %#v", err)
 		os.Exit(-1)
+	}
+
+	if opts.Args.File == "" {
+		return
 	}
 
 	file, err := os.Open(opts.Args.File)
