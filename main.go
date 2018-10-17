@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	flags "github.com/jessevdk/go-flags"
@@ -23,7 +25,7 @@ var opts struct {
 }
 
 const (
-	configDir  = ".nageru"
+	configDir  = ".config/nageru"
 	configFile = "config.toml"
 )
 
@@ -45,13 +47,25 @@ func getConfigFilePath() (string, error) {
 
 	dir := path.Join(usr.HomeDir, configDir)
 	if !Exists(dir) {
-		err = os.Mkdir(dir, 0755)
+		err = os.MkdirAll(dir, 0755)
 		if err != nil {
 			return "", err
 		}
 	}
 	dst := path.Join(dir, configFile)
 	return dst, nil
+}
+
+func saveConfig(config Config) error {
+	dst, err := getConfigFilePath()
+	w, err := os.Create(dst)
+	defer w.Close()
+
+	if err != nil {
+		return err
+	}
+	e := toml.NewEncoder(w)
+	return e.Encode(config)
 }
 
 // LoadConfig は、指定されたtomlファイルを~/.nageru/config.toml にコピーする
@@ -87,9 +101,29 @@ func ReadConfig() (*Config, error) {
 		return nil, err
 	}
 	var config Config
-	_, err = toml.DecodeFile(src, &config)
-	if err != nil {
-		return nil, err
+	if !Exists(src) {
+		fmt.Printf("Configファイルが無いようです。取り急ぎ、FileUploadが許可されたTokenがあれば作るので教えてください\nToken: ")
+		reader := bufio.NewReader(os.Stdin)
+		token, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		token = strings.TrimSuffix(token, "\n")
+		fmt.Printf("Channel: ")
+		channel, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		channel = strings.TrimSuffix(channel, "\n")
+		config = Config{token, []string{channel}}
+		if err := saveConfig(config); err != nil {
+			return nil, err
+		}
+	} else {
+		_, err = toml.DecodeFile(src, &config)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &config, nil
 }
@@ -114,6 +148,7 @@ func main() {
 	}
 
 	file, err := os.Open(opts.Args.File)
+	defer file.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ファイルの読み込みに失敗しました\n 理由: %#v", err)
 		os.Exit(-1)
