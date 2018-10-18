@@ -236,7 +236,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "乱数の取得に失敗しました\n 理由: %#v", err)
 			os.Exit(-1)
 		}
-		zipFilename = path.Base(opts.Args.File) + "-" + zipFilename + ".zip"
+		zipFilename = path.Join(tmpDir, path.Base(opts.Args.File)+"-"+zipFilename+".zip")
 
 		err = archiver.Zip.Make(zipFilename, []string{opts.Args.File})
 		if err != nil {
