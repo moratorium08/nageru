@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -25,8 +28,10 @@ var opts struct {
 }
 
 const (
-	configDir  = ".config/nageru"
-	configFile = "config.toml"
+	configDir     = ".config/nageru"
+	configFile    = "config.toml"
+	tmpDir        = "/tmp"
+	tmpFilePrefix = "tmp-"
 )
 
 type Config struct {
@@ -66,6 +71,53 @@ func saveConfig(config Config) error {
 	}
 	e := toml.NewEncoder(w)
 	return e.Encode(config)
+}
+
+func genRandomFileName() (string, error) {
+	// randomに16byteを受け取って文字列にする
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return tmpFilePrefix + hex.EncodeToString(b), nil
+}
+
+func stdinToTmp(filename string) error {
+	reader := bufio.NewReader(os.Stdin)
+	f, err := os.Create(filename)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+	writer := bufio.NewWriter(f)
+	buffer := make([]byte, 4096)
+
+	eof := false
+	for !eof {
+		n, err := reader.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				eof = true
+			} else {
+				return err
+			}
+		}
+
+		m := 0
+		for m < n {
+			tmp := buffer[m:n]
+			d, err := writer.Write(tmp)
+			if err != nil {
+				return err
+			}
+			m += d
+		}
+	}
+	if err = writer.Flush(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // LoadConfig は、指定されたtomlファイルを~/.nageru/config.toml にコピーする
@@ -148,7 +200,18 @@ func main() {
 	}
 
 	if opts.Args.File == "" {
-		return
+		filename, err := genRandomFileName()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "乱数の取得に失敗しました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+		// この時点では~/.config/nageru/が存在することは仮定している
+		path := path.Join(tmpDir, filename)
+		opts.Args.File = path
+		if err := stdinToTmp(path); err != nil {
+			fmt.Fprintf(os.Stderr, "入力の取得中にエラーが起きました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
 	}
 
 	file, err := os.Open(opts.Args.File)
