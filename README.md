@@ -2,6 +2,14 @@
 
 Slackに雑にファイルを投げるツール
 
+## インストール
+
+```
+$ go get -u github.com/moratorium08/nageru
+```
+
+または、バイナリを [release](https://github.com/moratorium08/nageru/releases) から落としてください
+
 ## 使い方
 
 ### 例
@@ -43,5 +51,13 @@ $ nageru --config config.toml
 
 でファイルが適切に設定されると思います
 
+## その他機能
 
+### stdinから送信
+
+ファイル名を指定しなかったときは、stdinからデータを取得し、EOFを受け取ったらそれまでに受け取ったデータを送信します
+
+### ディレクトリを送信
+
+指定されたファイルがディレクトリだった場合は、そのディレクトリを圧縮して送信します
 
