@@ -10,6 +10,29 @@
   version = "v0.3.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:988cfde37f089c50ba1ac8a1032c3f81d2ac0359e1872093b946a30139665eb6"
+  name = "github.com/dsnet/compress"
+  packages = [
+    ".",
+    "bzip2",
+    "bzip2/internal/sais",
+    "internal",
+    "internal/errors",
+    "internal/prefix",
+  ]
+  pruneopts = "UT"
+  revision = "cc9eb1d7ad760af14e8f918698f745e80377af4f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4a0c6bb4805508a6287675fac876be2ac1182539ca8a32468d8128882e9d5009"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
+
+[[projects]]
   digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
   name = "github.com/gorilla/websocket"
   packages = ["."]
@@ -26,6 +49,14 @@
   version = "v1.4.0"
 
 [[projects]]
+  digest = "1:d6f988e7296cebe16d9c405b73bee34da871b382f7438c811279614a725239ae"
+  name = "github.com/mholt/archiver"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "de0d89e255e17c8d75a40122055763e743ab0593"
+  version = "v2.1"
+
+[[projects]]
   digest = "1:95d38d218bf2290987c6b0e885a9f0f2d3d3239235acaddca01c3fe36e5e5566"
   name = "github.com/nlopes/slack"
   packages = [
@@ -37,6 +68,25 @@
   version = "v0.4.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:3bdb4203c03569a564d6a4bd54d84315575cebb2d76471f8676f8ee8c402005e"
+  name = "github.com/nwaples/rardecode"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e06696f847aeda6f39a8f0b7cdff193b7690aef6"
+
+[[projects]]
+  digest = "1:e39a5ee8fcbec487f8fc68863ef95f2b025e0739b0e4aa55558a2b4cf8f0ecf0"
+  name = "github.com/pierrec/lz4"
+  packages = [
+    ".",
+    "internal/xxh32",
+  ]
+  pruneopts = "UT"
+  revision = "635575b42742856941dbc767b44905bb9ba083f6"
+  version = "v2.0.7"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -44,12 +94,26 @@
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
+[[projects]]
+  digest = "1:4aeb3860275fa1fd60cccfb5a6ef85da438bf17402e1e84412ade4d4b55066a0"
+  name = "github.com/ulikunitz/xz"
+  packages = [
+    ".",
+    "internal/hash",
+    "internal/xlog",
+    "lzma",
+  ]
+  pruneopts = "UT"
+  revision = "0c6b41e72360850ca4f98dc341fd999726ea007f"
+  version = "v0.5.4"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/BurntSushi/toml",
     "github.com/jessevdk/go-flags",
+    "github.com/mholt/archiver",
     "github.com/nlopes/slack",
   ]
   solver-name = "gps-cdcl"

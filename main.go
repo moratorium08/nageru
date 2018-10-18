@@ -14,6 +14,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/mholt/archiver"
 	"github.com/nlopes/slack"
 )
 
@@ -42,6 +43,14 @@ type Config struct {
 func Exists(name string) bool {
 	_, err := os.Stat(name)
 	return !os.IsNotExist(err)
+}
+
+func IsDir(path string) (bool, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return st.IsDir(), nil
 }
 
 func getConfigFilePath() (string, error) {
@@ -212,6 +221,29 @@ func main() {
 			fmt.Fprintf(os.Stderr, "入力の取得中にエラーが起きました\n 理由: %#v", err)
 			os.Exit(-1)
 		}
+	}
+
+	dirFlag, err := IsDir(opts.Args.File)
+	if err != nil {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "対象となるファイルが存在しませんでした\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+	}
+	if dirFlag {
+		zipFilename, err := genRandomFileName()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "乱数の取得に失敗しました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+		zipFilename += ".zip"
+
+		err = archiver.Zip.Make(zipFilename, []string{opts.Args.File})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "フォルダーの圧縮に失敗しました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+		opts.Args.File = zipFilename
 	}
 
 	file, err := os.Open(opts.Args.File)
