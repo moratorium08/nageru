@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/fsnotify/fsnotify"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mholt/archiver"
 	"github.com/nlopes/slack"
@@ -23,6 +24,7 @@ var opts struct {
 	Message string `short:"m" long:"message" description:"comment attached to the file" value-name:"MESSAGE"`
 	Channel string `short:"c" long:"channel" description:"channel in which your file will be sent" value-name:"CHANNEL"`
 	Title   string `short:"t" long:"title" description:"title attached to the file" value-name:"TITLE"`
+	Watch   bool   `short:"w" long:"watch" description:"watches the directed file/folder"`
 	Args    struct {
 		File string
 	} `positional-args:"yes"`
@@ -156,6 +158,36 @@ func LoadConfig(file string) error {
 	return nil
 }
 
+func uploadFile(config *Config) error {
+	file, err := os.Open(opts.Args.File)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	var channels []string
+
+	if opts.Channel != "" {
+		channels = []string{opts.Channel}
+	} else {
+		channels = config.Channels
+	}
+
+	params := slack.FileUploadParameters{
+		Channels:       channels,
+		Filename:       path.Base(opts.Args.File),
+		InitialComment: opts.Message,
+		Reader:         file,
+		Title:          opts.Title,
+	}
+
+	api := slack.New(config.SlackToken)
+	if _, err := api.UploadFile(params); err != nil {
+		return err
+	}
+	return nil
+}
+
 func ReadConfig() (*Config, error) {
 	src, err := getConfigFilePath()
 	if err != nil {
@@ -246,31 +278,53 @@ func main() {
 		opts.Args.File = zipFilename
 	}
 
-	file, err := os.Open(opts.Args.File)
-	defer file.Close()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ファイルの読み込みに失敗しました\n 理由: %#v", err)
-		os.Exit(-1)
+	if opts.Watch {
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fsnotifyの起動に失敗しました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+		defer watcher.Close()
+
+		done := make(chan bool)
+		go func() {
+			for {
+				select {
+				case event, ok := <-watcher.Events:
+					if !ok {
+						close(done)
+						return
+					}
+					if (event.Op&fsnotify.Write == fsnotify.Write) ||
+						(event.Op&fsnotify.Create == fsnotify.Create) {
+						fmt.Printf("%v をアップロードしています...\n", event.Name)
+						opts.Args.File = event.Name
+						if err := uploadFile(config); err != nil {
+							fmt.Fprintf(os.Stderr, "ファイルをアップロードに失敗しました\n 理由: %#v", err)
+							os.Exit(-1)
+						}
+					}
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						close(done)
+						return
+					}
+					fmt.Fprintf(os.Stderr, "ファイルの監視に失敗しました\n 理由: %#v", err)
+					os.Exit(-1)
+				}
+			}
+		}()
+
+		err = watcher.Add(opts.Args.File)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ファイルの監視に失敗しました\n 理由: %#v", err)
+			os.Exit(-1)
+		}
+		<-done
+		return
 	}
 
-	var channels []string
-
-	if opts.Channel != "" {
-		channels = []string{opts.Channel}
-	} else {
-		channels = config.Channels
-	}
-
-	params := slack.FileUploadParameters{
-		Channels:       channels,
-		Filename:       path.Base(opts.Args.File),
-		InitialComment: opts.Message,
-		Reader:         file,
-		Title:          opts.Title,
-	}
-
-	api := slack.New(config.SlackToken)
-	if _, err := api.UploadFile(params); err != nil {
+	if err := uploadFile(config); err != nil {
 		fmt.Fprintf(os.Stderr, "ファイルのアップロードに失敗しました\n 理由: %#v", err)
 		os.Exit(-1)
 	}
