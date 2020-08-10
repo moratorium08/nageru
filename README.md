@@ -17,8 +17,13 @@ $ go get -u github.com/moratorium08/nageru
 ```
 $ ls
 cookies
-$ nageru cookies -m "this is message(not required)" -c random -t "this is title(not required)"
+$ nageru cookies
+$
 ```
+
+すると、設定したslackのワークスペースにファイルがアップロードされます。
+
+![screenshot](images/screenshot.png)
 
 より詳しくは以下のようなオプションが使えます。
 
